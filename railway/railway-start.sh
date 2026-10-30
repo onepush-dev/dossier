@@ -14,5 +14,12 @@ if [ -z "${DOSSIER_PASSWORD:-}" ]; then
   export DOSSIER_PASSWORD
   echo "Dossier: sign-in password taken from DOSSIER_LOGIN_PASSWORD (hashed at start)."
 fi
+# Wait (up to 120 s) for Postgres: on a fresh Railway deploy the database can come up after the app.
+node -e '
+const u = new URL(process.env.DATABASE_URL); const net = require("node:net");
+const end = Date.now() + 120000;
+(function t() { const s = net.connect(Number(u.port || 5432), u.hostname);
+  s.on("connect", () => { s.end(); process.exit(0); });
+  s.on("error", () => { if (Date.now() > end) process.exit(0); console.log("Waiting for the database..."); setTimeout(t, 2000); }); })();'
 cd /app
 exec ./start.sh
